@@ -2,7 +2,7 @@
 # I have attached the manually curated (i.e. after excluding ~200 markers showing discrepancies between physical/genetic distances)
 # The file can be downloaded from the datasets folder.
 # The first few sections of this script will produce useful plots, of which some are included as supplements to the manuscript
-# I would like to thank Antonia Klein! Her code was a very great help here.
+# I would like to thank Dr. Antonia Klein! Her code was a very great help here.
 
 # load libraries
 library(tidyverse)
