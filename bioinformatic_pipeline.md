@@ -58,7 +58,7 @@ ls *D.bam |parallel --progress --eta --jobs 10 '/usr/lib/jvm/java-8-openjdk-amd6
 ### Variant filtering
 
 
-Get bi allelic SNPs
+* **_Get biallelic SNPs_**
 ```bash
 
 vcftools --gzvcf gCobs3.1.linkageMapping.vcf.gz --remove-indels --min-alleles 2 --max-alleles 2 --recode --recode-INFO-all --out Cobs3.1.linkageMapping.snps
@@ -67,14 +67,20 @@ vcftools --gzvcf gCobs3.1.linkageMapping.vcf.gz --remove-indels --min-alleles 2 
 bgzip Cobs3.1.linkageMapping.snps.recode.vcf
 tabix Cobs3.1.linkageMapping.snps.recode.vcf.gz
 ```
+* **_Filter based on parental genotypes_**
+
 Get heterozygous markers in F1 queen (F1Queen) that are homozygous fixed for different alleles in the parents or heterozygous in grandmother (PQueen)
 ```bash
 gatk SelectVariants -V Cobs3.1.linkageMapping.snps.recode.vcf.gz -O biall.snps.noMendelianErrParents.vcf.gz -select 'vc.getGenotype("F1Queen").isHet() && (vc.getGenotype("PQueen").isHomRef() && vc.getGenotype("PMale").isHomVar() || vc.getGenotype("PQueen").isHet() && vc.getGenotype("PMale").isHom()) || vc.getGenotype("F1Queen").isHet() && (vc.getGenotype("PQueen").isHomVar() && vc.getGenotype("PMale").isHomRef() || vc.getGenotype("PQueen").isHet() && vc.getGenotype("PMale").isHom())' -select 'vc.getGenotype("F1Male").isHomVar() && (vc.getGenotype("PQueen").isHomVar() || vc.getGenotype("PQueen").isHet()) || vc.getGenotype("F1Male").isHomRef() && (vc.getGenotype("PQueen").isHomRef() || vc.getGenotype("PQueen").isHet())'
 ```
-In ants males are haploid. Any position called as heterozygous in males indicates a genotyping error and should be excluded. get only positions where none of the males is heterozygous
+* **_Remove SNPs in problematic regions_**
+
+In ants males are haploid and position called as heterozygous in these indicates a genotyping error and should be excluded. This is likely to happend in regions hard to align e.g. repeat rich regions. Get only positions where none of the males is heterozygous
 ```bash
 gatk SelectVariants -V biall.snps.noMendelianErrParents.vcf.gz -O biall.snps.noMendelianErrParents.noHetMale.vcf.gz --invertSelect true -select 'vc.getGenotype("EM1").isHet()' -select 'vc.getGenotype("EM112").isHet()'  -select 'vc.getGenotype("EM2").isHet()' -select 'vc.getGenotype("EM3").isHet()' -select 'vc.getGenotype("EM35").isHet()' -select 'vc.getGenotype("EM36").isHet()'  -select 'vc.getGenotype("EM37").isHet()' -select 'vc.getGenotype("EM38").isHet()' -select 'vc.getGenotype("EM39").isHet()' -select 'vc.getGenotype("EM4").isHet()' -select 'vc.getGenotype("EM5").isHet()' -select 'vc.getGenotype("EM78").isHet()' -select 'vc.getGenotype("F1Male").isHet()' -select 'vc.getGenotype("PMale").isHet()'
 ```
+* **_Discard genotypes showing mendelian errors_**
+
 Check and exclude genotypes showing mendelian discrepancies using [bcftools](https://samtools.github.io/bcftools/bcftools.html) _+mendelian_ function. This concerns the diploid workers. Males get one of the two F1 queen haplotypes and we have removed heterozygous positions anyways. For the workers however, there might be instances of mendelian errors. These are either genotyping errors or novel mutations, that should be excluded. For instance if the F1 queen is 0/1 and the F1 father is 1/1 the only two possible F2 genotypes are 0/1 or 1/1 (possible genotype), but never 0/0 (**impossible genotype**). If 0/0 then that should be switched to missing. In the next section we extract the genotypes of each of the workers and compare it to the F1 father. If **impossible genotype**, we replace it with missing (./.).
 
 
@@ -124,7 +130,9 @@ bcftools annotate -a ../biall.snps.noMendelianErrParents.noHetMale.vcf.gz -c INF
 paste <(bcftools +mendelian biall.snps.noMendelianErrParents.noHetMale.GT.noMenErr.ANN.vcf.gz -T pedigree.txt ) <(bcftools +mendelian biall.snps.noMendelianErrParents.noHetMale.vcf.gz -T pedigree.txt) > afterANDbefore.txt
 
 ```
-Use [VCFtools](https://vcftools.github.io/index.html) to filter based on coverage, missingness and maf.
+* **_Filter based on depth, missing data and allele frequency_**
+
+Use [VCFtools](https://vcftools.github.io/index.html) to filter based on coverage, missingness and MAF.
 ```bash
 vcftools --gzvcf biall.snps.noMendelianErrParents.noHetMale.GT.noMenErr.ANN.vcf.gz --max-meanDP 50 --min-meanDP 19 --minDP 5 --max-missing 0.8 --maf 0.2 --recode --recode-INFO-all --out biall.snps.noMendelianErrParents.noHetMale.GT.noMenErr.ANN.filtered
 ```
@@ -221,266 +229,7 @@ picard NormalizeFasta I=Cobs3.0.clean.fa O=Cobs3.1.clean.fa
 ```
 ### Genome-wide recombination rates (gwRR)
 
-Windowed recombination rates were estimated from the MSTmap output. We plotted genetic versus physical distance and visually checked correlations. Markers showing discrepencies between genetic and physical distances were removed. The final ordered markers file can be found in the datasets folder. I would like to thank Antonia Klein! Here code was a very great help here.
-
-```R
-# load libraries
-library(tidyverse)
-library(ggpubr)
-
-# load data
-lg <- read_delim("datasets/manuallyCurated.markers.forR.txt", col_names = F, delim = "\t")
-colnames(lg) <- c("chr", "pos", "id", "distance1", "lg", "distance")
-head (lg)
-
-# reorder lg:
-plotthis <- as.data.frame(lg[,c(5,6,3)])
-colnames(plotthis) <- c("group", "position", "locus")
-head(plotthis)
-
-## by lg size
-df <- plotthis %>% group_by(group) %>% summarise(max(position))
-df <- df[order(df$`max(position)`, decreasing = T),]
-df$group
-
-## by no of markers in each lg
-df2 <- plotthis %>% group_by(group) %>% summarise(length(position))
-df2 <- df2[order(df2$`length(position)`, decreasing = T),]
-df2$group
-
-paste(shQuote(as.list(df$group)), collapse=", ")
-lgs <- c('LG1', 'LG2', 'LG3', 'LG4', 'LG5', 'LG6', 'LG7', 'LG8', 'LG9', 'LG10', 'LG11',
-         'LG12', 'LG13', 'LG14', 'LG15', 'LG16', 'LG17', 'LG18', 'LG19', 'LG20', 'LG21', 'LG22',
-         'LG23', 'LG24', 'LG25', 'LG26', 'LG27', 'LG28', 'LG29')
-paste(shQuote(as.list(sub("LG", "", lgs))), collapse=", ")
-
-mcombsub <- reshape2::melt(lg, id=c("chr", "pos", "id", "lg", "distance1"))
-mcombsub$CHR <- as.numeric(sub("LG", "", lg$lg))
-
-mcombsub$CHR <- factor(mcombsub$CHR, levels = c('1', '2', '3', '4', '5', '6', '7', '8', '9',
-                                                '10', '11', '12', '13', '14', '15', '16', '17',
-                                                '18', '19', '20', '21', '22', '23', '24', '25', '26',
-                                                '27', '28', '29'))
-
-# plot physical vs genetic distances:
-                                                                                ##########################################
-                                                                                ### Plot physical vs genetic distances ###
-                                                                                ##########################################
-
-
-ggplot(filter(mcombsub, CHR %in% c('1', '2', '3', '4', '5', '6', '7', '8', '9',
-                                   '10', '11', '12', '13', '14', '15', '16', '17',
-                                   '18', '19', '20', '21', '22', '23', '24', '25', '26',
-                                   '27', '28', '29')),
-       aes(pos/1000000, value, color=variable))+  theme_bw()+
-  geom_jitter(aes(), size=.4, alpha=.2)+
-  geom_line(aes()) +
-  stat_cor(method = "s",label.y.npc="top", label.x.npc = "left", cor.coef.name = "rho", cex=2, colour = "red")+
-  scale_fill_manual(values=c("#66c2a5"))+
-  scale_color_manual(values=c("#66c2a5"))+
-  theme(panel.border = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        axis.line = element_line(colour = "black")
-  )+
-  scale_y_continuous(name=expression(paste("genetic distance (cM)", italic(" "))))+
-  scale_x_continuous(name=expression(paste("physical distance (Mb)", italic(" "))))+
-  theme(legend.position = "none")+
-  # facet_grid(cols=vars(CHR),  scales = "free", space = "free_x")+
-  facet_wrap(~CHR, ncol=5, nrow = 6, scales = "free")+
-  theme(panel.spacing.x=unit(.5,"lines"),
-        panel.spacing.y=unit(.5,"lines"),
-        panel.background = element_blank(),
-        axis.text.x = element_text(size=7, angle=45),
-        #axis.ticks.x = element_blank(),
-        panel.spacing = unit(.1, "cm"),
-        #panel.background=element_rect(fill='white', colour='black'),
-        strip.background=element_rect(fill='white', colour='black'))+ ggtitle("")+
-  guides(colour = guide_legend(nrow = 1))
-
-# dev.print(pdf,"~/sciebo/My_PhD/Cobs3.1/linkageMap/analyses/RRfinalMarkerSet/Figure.S2.pdf", height=10, width=8)
-
-                                                                                ##################################################
-                                                                                ### Plot Marker distribution along chromosomes ###
-                                                                                ##################################################
-# load data
-lg <- read_delim("datasets/manuallyCurated.markers.forR.txt", col_names = F, delim = "\t")
-colnames(lg) <- c("chr", "pos", "id", "distance1", "lg", "distance")
-
-lg$scf = as.numeric(gsub("LG", "", lg$chr))
-
-head (lg)
-
-# load chromosome sizes
-scf = read.table("datasets/Cobs3.1.chrom-size.txt")
-scf = scf[seq(1,29,1),]
-scf = cbind(scf, seq(1,29,1))
-names(scf) = c("scf", "length", "number")
-
-head(scf)
-# plot
-
-bp <- barplot(scf$length/1E6, border=NA, col="grey90",
-              ylim=c(0,15), xlab="linkage group", ylab="length in Mb", names.arg=scf$number,
-              cex.axis=.7, cex.names=.7, space = 10)
-
-with(lg,
-     segments(
-       bp[scf,]-0.5,
-       pos/1E6,
-       bp[scf,]+0.5,
-       pos/1E6,
-       col="black",
-       lwd=.5,
-       lend="butt",
-     )
-)
-
-
-                                                                                ##########################################
-                                                                                ### Plot markers and linkage groups ###
-                                                                                ##########################################
-# load library
-library("LinkageMapView")
-
-# output file
-outfile = file.path("sciebo/My_PhD/Cobs3.1/linkageMap/analyses/RRfinalMarkerSet/manuallyCurated.markers.forR.LGs.v2.pdf")
-
-# plot
-lmv.linkage.plot(plotthis,outfile, mapthese=c('LG7', 'LG2', 'LG3', 'LG5', 'LG1', 'LG8', 'LG21', 'LG9', 'LG15',
-                                              'LG20', 'LG23', 'LG24', 'LG14', 'LG10', 'LG25', 'LG16', 'LG19',
-                                              'LG11', 'LG4', 'LG27', 'LG13', 'LG22', 'LG18', 'LG29', 'LG12',
-                                              'LG17', 'LG6', 'LG28', 'LG26'),
-                 dupnbr=TRUE, lg.col = "#CCCCFF", lgperrow = 15, ruler = T, pdf.width = 56, pdf.height = 40)
-
-
-                                                                                ######################################
-                                                                                ### Computing gwRecombination Rates###
-                                                                                ######################################
-
-# recombination between recombining markers
-rr1 <- lg %>%
-  group_by(chr) %>%
-  arrange(pos, .by_group = TRUE) %>%
-  mutate(RR = distance - lag(distance, default = first(distance)),
-         PhysicalDist = (pos - lag(pos, default = first(pos)))/1000000,
-         pos2=lag(pos, default = first(pos)))
-
-# cluster non recombining markers into regions
-m1 <-
-  lg %>%
-  group_by(chr,distance) %>%
-  arrange(pos, .by_group = TRUE) %>%
-  filter(row_number() == 1 | row_number() == n())
-
-
-# calculate recombination rate as: the ratio of the genetic to physical distance (in cM/Mb)
-rr <- m1 %>%
-  group_by(chr) %>%
-  arrange(pos, .by_group = TRUE) %>%
-  mutate(clusterGeneticDistMb = (distance - lag(distance, default = first(distance))),
-         clusterPhysicalDistcM = (pos - lag(pos, default = first(pos)))/1000000,
-         recombRatecMMb = (distance - lag(distance, default = first(distance)))/((pos - lag(pos, default = first(pos)))/1000000))
-
-# save this!
-write_delim(rr, "manuallyCurated.markers.RecomRateBetweenClustersGold.txt", delim = "\t")
-
-# you need to edit the output in text editor to get recombination rates in a bed file and subsequently use bedtools intersect!
-# bedtools makewindows -g chrom-size.txt -w 250000 -i srcwinnum |bedtools sort > 250kbwindows.bed
-# bedtools intersect -a recombinationRateinBed.bed -b 250kbwindows.bed -wa -wb > recombinationRatein250kb.windows.txt
-
-
-                                                                                ##################################################
-                                                                                ### CALCULATE RECOMEBINATION IN SLIDING WINOWS ###
-                                                                                ##################################################
-data = read.table("recombinationRatein250kb.windows.txt", header=F)
-head(data)
-
-data = data[ ,c(1, 2, 3, 4, 6, 7, 8)]
-names(data) <- c("scf","scf_position1","scf_position2", "RR",  "window_start", "window_end",  "window_name")
-
-# calculate weighted mean of "RR" for each window:
-##################################################
-datalist = list()
-
-for (j in unique(data$scf)) {
-  print(j)
-  data1 <- data[data$scf==j,]
-  data1$window_name_short = as.numeric(gsub("^[^_]*_", "", data1$window_name))
-  dt = data1
-  dt$distance_bp <- data1$scf_position2-data1$scf_position1
-  df = data.frame(window_name_short=seq(1,max(dt$window_name_short),1), window_size=NA, mean_RR=NA, weighted_mean_RR=NA)
-  for(i in unique(dt$window_name_short)) {
-    window = paste("window", i, sep="")
-    assign(window, subset(dt, window_name_short==i))
-
-    # if the window contains only one row, set window size to 1 and use its RR value for mean and weighted mean calculation
-    if(nrow(get(paste("window",i,sep="")))==1) {
-      df$window_size[i] <- "1"
-      df$mean_RR[i] <- dt[dt$window_name_short==i, ]$RR
-      df$weighted_mean_RR[i] <- dt[dt$window_name_short==i, ]$RR
-    }
-
-    else {
-      df$window_size[i] <- nrow(get(paste("window",i,sep="")))
-
-      # calculate mean RR value for the current window and store in 'df' data frame
-      df$mean_RR[i] <- mean(dt[dt$window_name_short==i, ]$RR)
-
-      # calculate weighted mean RR value
-      # save rr of this window in a new vector:
-      rr_window = paste("rr_window", i, sep="")
-      assign(rr_window, dt[dt$window_name_short==i, ]$RR)
-
-      # save physical distances of this window in a new vector:
-      dist_window = paste("dist_window", i, sep="")
-      assign(dist_window, dt[dt$window_name_short==i, ]$distance_bp)
-
-      # calculate rr_window * dist_window
-      product = paste("product", i, sep="")
-      assign(product, get(paste("rr_window", i, sep="")) * get(paste("dist_window", i, sep="")))
-
-      # add:
-      sum = paste("sum", i, sep="")
-      assign(sum, sum(get(paste("product", i, sep=""))))		
-
-      # sum_distance:
-      sum_distance = paste("sum_distance", i, sep="")
-      assign(sum_distance, sum(get(paste("dist_window", i, sep=""))))		
-
-      # weighted_mean:
-      w_mean = paste("w_mean", i, sep="")
-      assign(w_mean,  get(paste("sum", i, sep="")) /get(paste("sum_distance", i, sep="")) )
-
-      df$weighted_mean_RR[i] <- get(paste("w_mean", i, sep=""))
-    }
-  }
-  # merge data_seq:
-  ##################
-
-  merged = merge(data1, df, by="window_name_short")
-
-  # add column with window mid position as midPos -values:
-  merged$midPos = (as.numeric(merged$window_end) + as.numeric(merged$window_start))*1E-6/2
-
-  merged_unique = merged[!duplicated(merged[,"window_name"]),]
-  datalist[[j]] <- merged_unique
-
-  # remove objects with names containing 'window', 'product', 'distance', 'sum', and 'mean'
-  rm(list = ls(pattern = "window|product|distance|sum|mean"))  
-}
-
-windowedRR = do.call(rbind, datalist)
-
-# add windows without markers:
-nonoverlapping = read.table("250kbwindows.bed", header=F)
-names(nonoverlapping) = c("scf","window_start","window_end","window_name")
-
-df2 = merge(windowedRR, nonoverlapping, by="window_name", all.x=T, all.y=T)
-
-# store this!
-write_delim(df2, "finalRecombinationRateEstimates.250kbwindows.txt", delim = "\t")
-```
+Windowed recombination rates were estimated from the MSTmap output. We plotted genetic versus physical distance and visually checked correlations. Markers showing discrepancies between genetic and physical distances were removed. The final ordered markers file can be found in the datasets folder. Use the [gwRecombinationRate.R](Rscripts/gwRecombinationRate.R) script to then calculate gwRR estimates as well as to visualize e.g. genetic versus physical distance correlations.
 
 
 ### Population genomics using pool-seq data
@@ -494,6 +243,14 @@ popoolation_1.2.2/syn-nonsyn/Syn-nonsyn-sliding.pl --measure pi --pool-size 30 -
 # for Una pool
 popoolation_1.2.2/syn-nonsyn/Syn-nonsyn-sliding.pl --measure pi --pool-size 50 --gtf Cobs.alpha.v.3.1.geneannotation.1.5.polished.gtf --pileup A006200053_109205_S23_L002_CSFRD_indelsfree.pileup --output pool_Una_syn-nonsyn_250kb250kb_nsl_p1.pi --window-size 250000 --step-size 250000 --fastq-type sanger --min-coverage 4 --max-coverage 77 --codon-table popoolation_1.2.2/syn-nonsyn/codon-table.txt --nonsyn-length-table popoolation_1.2.2/syn-nonsyn/nsl_p1.txt
 ```
+### Absolute divergence (_D_<sub>XY</sub>) calculation
+For divergence analysis we used samples previously sequenced from four popolations; two representing the Old World lineage (collected from Taiwan and Leiden) and two of the New World lineage (Itabuna and Una) (see [Errbii et al. 2021](https://doi.org/10.1111/mec.16099)). Raw reads filtering, mapping and variant calling were performed as described previously ([here](https://github.com/merrbii/CobsPopGenomics)). We used GATK's GenotypeGVCFs with the `--all-sites` option to output invariant sites as well. _D_<sub>XY</sub> was then calculated using scripts written by **Dr. Simon H. Martin** that can be accessed [here](https://github.com/simonhmartin/genomics_general).
+
+
+### Structural variants and short InDels analysis
+For SVs and InDels we used sequencing data from 16 individual workers from five population of Cardiocondyla_obscurior_ previously generated (see [Errbii et al. 2021](https://doi.org/10.1111/mec.16099)). For InDels, we followed pipeline described before (further details [here](https://github.com/merrbii/CobsPopGenomics)) for raw reads filtering, mapping and variant calling. We then used GATK's _SelectVariants_ function with `--select-type-to-include INDEL` to only keep InDels. For filtering we used GATK's hard-filtering recommendations, `i.e. FS > 200.0, QD < 2.0, ReadPosRankSum < -20.0 and QUAL < 30.0`, and futher used VCFtools to keep bi-allelic ones `--max-alleles 2 and --min-alleles 2` with a MAF > 0.05 `--maf 0.05`.
+For SVs, we followed steps detailed by **Dr. Claire Mérot** [here](https://github.com/clairemerot/SR_SV).
+
 ### Molecular evolutionary rates
 
 ```bash
@@ -607,42 +364,4 @@ cat genesSeq.blast.results.txt|awk -vOFS="\t" '{print $0,$5/$4}'|sort -k1,1 -k3,
 awk '{if ($11 > 0.8) print $0}' uniq.genesSeq.blast.results.txt |cut -f1,2|tr -s ":"|tr ":" "\t"|cut -f1,4 > Cobs3.1.geneID.Cobs1.4.geneID.txt
 ```
 
-The file obtained above contains two important columns; geneID(Cobs3.1) and geneid(Cobs1.4) + coordinates. Now in R merge this and the supplementary file generated by Schrader et al. and published along their paper.
-
-```R
-schrader <- read_delim("RNAseq/msw240_Supp/SupplementaryTable.csv", col_names = T, delim = ",")
-
-mygenes <- read_delim("RNAseq/Cobs3.1.geneID.Cobs1.4.geneID.txt", col_names = F, delim = "\t")
-
-colnames(mygenes) <- c("cobs31","chr", "start", "end","geneID")
-
-merged <- merge(mygenes, schrader, by = "geneID", all.x = T)
-
-## Add recombination rates:
-# load rr
-rr <- read_delim("windowedRR/finalRecombinationRateEstimates.250kbwindows.txt", col_names = T)
-rr <- rr[,c(1,11)]
-colnames(rr) <- c("window_name", "rr")
-
-
-# load gene window names: a bed file containing 5 columns: 	 <geneID(Cobs3.1)> <chr> <start> <end> <window_name>
-genewid <- read_delim("RNAseq/genesCobs3.1.matching.ExpressedgenesCobs1.4.RR.tmp.txt", col_names = F)
-colnames(genewid) <- c("cobs31", "chr", "start", "end", "window_name")
-
-# combine datasets
-merged2 <- merge(genewid, rr, by = "window_name")
-merged3 <- merge(merged, merged2, by = c("cobs31", "chr", "start", "end"))
-
-# remove entries with no expression data:
-merged3 <- merged3[!is.na(silver$`Expr(Ave)`),]
-
-# remove duplicate genes: i.e. genes split in the new assembly
-n_occur1 <- data.frame(table(merged3$geneID))
-merged3 <- merged3[merged3$geneID %in% n_occur1$Var1[n_occur1$Freq < 2],]
-
-data <- merged3
-
-# store table for correlation analysis:
-write.table(data,"RNAseq/finals/genesCobs3.1.matching.ExpressedgenesCobs1.4.Schraderetal.withRR.txt", quote = F, sep = "\t", row.names = F, col.names = T)
-
-```
+The file obtained above contains two important columns; geneID(Cobs3.1) and geneid(Cobs1.4) + coordinates. Now in R merge this and the supplementary file generated by Schrader et al. and published along their paper. Use the [mergeRRexpressionbias.R](Rscripts/mergeRRexpressionbias.R) script to do so.
