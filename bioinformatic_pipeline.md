@@ -149,7 +149,7 @@ paste <(cut -f1-5,10-21 unphasedMarkers.forPhasing.txt) <(awk 'BEGIN{FS=OFS="\t"
 bcftools view biall.snps.noMendelianErrParents.noHetMale.GT.noMenErr.ANN.filtered.recode.vcf |grep -v "##"|awk 'BEGIN{FS=OFS="\t"}  {for (i=1; i<9; i++) printf $i FS; print "GT"}' > vcf.annotations.tsv
 # change first GT to FORMAT!
 ```
-Now switch to R and use [generate_phasedVCF.R](main/Rscripts/generate_phasedVCF.R) to combine annotations in `vcf.annotations.tsv` and the phased genotypes `phasedMarkers.noMissF1male.tsv`. After doing so, return to bash and produce the final clean vcf file with phased genotypes.
+Now switch to R and use [generate_phasedVCF.R](Rscripts/generate_phasedVCF.R) to combine annotations in `vcf.annotations.tsv` and the phased genotypes `phasedMarkers.noMissF1male.tsv`. After doing so, return to bash and produce the final clean vcf file with phased genotypes.
 ```bash
 # add headers, "diploidize" and switch missing (-) to ./.
 cat <(bcftools view biall.snps.noMendelianErrParents.noHetMale.GT.noMenErr.ANN.filtered.recode.vcf |grep "##")  <(paste <(cut -f1-9 vcf.body.phased.tsv ) <(cat <(cut -f10- vcf.body.phased.tsv  |grep "^F") <(cut -f10- vcf.body.phased.tsv | grep -v "^F"|sed 's@1@1/1@g'|sed 's@0@0/0@g'|sed 's@-@./.@g'))) > biall.snps.noMendelianErrParents.noHetMale.GT.noMenErr.ANN.filtered.recode.phased.vcf
