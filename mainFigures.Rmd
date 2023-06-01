@@ -575,7 +575,7 @@ p1.bin <- df.bin.subset  %>%
   scale_x_discrete(name =NULL,
                    labels=c("TEI","0","5","15","20",">20"))+
   coord_cartesian(ylim=c(-5.3,-2))+
-  scale_y_continuous(name=NULL, breaks = c(-5,-4,-3))+
+  scale_y_continuous(name= expression(paste("log"[10]," nucleotide diversity")), breaks = c(-5,-4,-3))+
   theme_classic2()+
   theme(axis.text = element_text(angle = 0,face="bold",size=10),
         legend.position = "none",
@@ -585,7 +585,7 @@ p1.bin <- df.bin.subset  %>%
 
 # Create a text
 grob <- grobTree(textGrob(expression(pi), 
-                          gp=gpar(col="grey", fontsize=80, fontface="bold",alpha=.5, fontfamily = "Georgia")))
+                          gp=gpar(col="grey", fontsize=80, fontface="bold",alpha=.4, fontfamily = "Georgia")))
 # Plot
 p1.bin<-p1.bin + annotation_custom(grob)
 
@@ -617,7 +617,7 @@ t1.bin <- df.bin.subset  %>%
   scale_x_discrete(name =NULL,
                    labels=c("TEI","0","5","15","20",">20"))+
                    # labels=c("TEI","0","5","10","15","20",">20"))+
-  scale_y_continuous(name=NULL, breaks = c(-2,-1,0,1,2))+
+  scale_y_continuous(name= expression(paste("Tajima's ", italic(D))), breaks = c(-2,-1,0,1,2))+
   theme_classic2()+
   coord_cartesian(ylim=c(-2.8,3))+
   theme(axis.text = element_text(angle = 0,face="bold",size=10),
@@ -628,7 +628,7 @@ t1.bin <- df.bin.subset  %>%
 
 # Create a text
 grob <- grobTree(textGrob(expression(paste("Taj", italic(D))),
-                          gp=gpar(col="grey", fontsize=60, fontface="bold",alpha=.5, fontfamily = "Georgia")))
+                          gp=gpar(col="grey", fontsize=60, fontface="bold",alpha=.4, fontfamily = "Georgia")))
 # Plot
 t1.bin<-t1.bin + annotation_custom(grob)
 
@@ -665,7 +665,7 @@ f1.bin <- df.bin.subset  %>%
                    labels=c("TEI","0","5","15","20",">20"))+
                    # labels=c("TEI","0","5","10","15","20",">20"))+
   coord_cartesian(ylim=c(0.2,1.1))+
-  scale_y_continuous(name=NULL, breaks = c(0,.3,.6,.9))+
+  scale_y_continuous(name= expression(italic("F")["ST"]), breaks = c(0,.3,.6,.9))+
   theme_classic2()+
   theme(axis.text = element_text(angle = 0,face="bold",size=10),
         legend.position = "none",
@@ -675,7 +675,7 @@ f1.bin <- df.bin.subset  %>%
 
 # Create a text
 grob <- grobTree(textGrob(expression(paste(italic(F)[ST])), 
-                          gp=gpar(col="grey", fontsize=60, fontface="bold",alpha=.5, fontfamily = "Georgia")))
+                          gp=gpar(col="grey", fontsize=60, fontface="bold",alpha=.4, fontfamily = "Georgia")))
 # Plot
 f1.bin<-f1.bin + annotation_custom(grob)
 
@@ -710,7 +710,7 @@ d1.bin <- df.bin.subset  %>%
                    labels=c("TEI","0","5","15","20",">20"))+
                    # labels=c("TEI","0","5","10","15","20",">20"))+
   coord_cartesian(ylim=c(-3.5,-1.8))+
-  scale_y_continuous(name=NULL, breaks = c(-3.5,-3.0,-2.5,-2))+
+  scale_y_continuous(name= expression(paste("log"[10]," ",italic("d")["xy"])), breaks = c(-3.5,-3.0,-2.5,-2))+
   theme_classic2()+
   theme(axis.text = element_text(angle = 0,face="bold",size=10),
         legend.position = "none",
@@ -719,7 +719,7 @@ d1.bin <- df.bin.subset  %>%
 
 # Create a text
 grob <- grobTree(textGrob(expression(paste(italic(d)[xy])),
-                          gp=gpar(col="grey", fontsize=65, fontface="bold",alpha=.5, fontfamily = "Georgia")))
+                          gp=gpar(col="grey", fontsize=65, fontface="bold",alpha=.4, fontfamily = "Georgia")))
 # Plot
 d1.bin<-d1.bin + annotation_custom(grob)
 
@@ -798,7 +798,7 @@ ps1.bin <- df.bin.subset  %>%
                    labels=c("TEI","0","5","15","20",">20"))+
                    # labels=c("TEI","0","5","10","15","20",">20"))+
   coord_cartesian(ylim=c(-5.4,-2))+
-  scale_y_continuous(name=NULL, breaks = c(-5,-4,-3))+
+  scale_y_continuous(name= expression(paste("log"[10]," ",pi["S"])), breaks = c(-5,-4,-3))+
   theme_classic2()+
   theme(axis.text = element_text(angle = 0,face="bold",size=10),
         legend.position = "none",
@@ -809,7 +809,7 @@ ps1.bin <- df.bin.subset  %>%
 
 # Create a text
 grob <- grobTree(textGrob(expression(paste(pi)[S]),
-                          gp=gpar(col="grey", fontsize=80, fontface="bold",alpha=.5, fontfamily = "Georgia")))
+                          gp=gpar(col="grey", fontsize=80, fontface="bold",alpha=.4, fontfamily = "Georgia")))
 # Plot
 ps1.bin<-ps1.bin + annotation_custom(grob)
 
@@ -845,7 +845,7 @@ pns1.bin <- df.bin.subset  %>%
                    labels=c("TEI","0","5","15","20",">20"))+
                    # labels=c("TEI","0","5","10","15","20",">20"))+
   coord_cartesian(ylim=c(-5.8,-2))+
-  scale_y_continuous(name=NULL, breaks = c(-5,-4,-3))+
+  scale_y_continuous(name= expression(paste("log"[10]," ",pi["NS"])), breaks = c(-5,-4,-3))+
   theme_classic2()+
   theme(axis.text = element_text(angle = 0,face="bold",size=10),
         legend.position = "none",
@@ -854,7 +854,7 @@ pns1.bin <- df.bin.subset  %>%
 
 # Create a text
 grob <- grobTree(textGrob(expression(paste(pi)[NS]),
-                          gp=gpar(col="grey", fontsize=80, fontface="bold",alpha=.5, fontfamily = "Georgia")))
+                          gp=gpar(col="grey", fontsize=80, fontface="bold",alpha=.4, fontfamily = "Georgia")))
 # Plot
 pns1.bin<-pns1.bin + annotation_custom(grob)
 
@@ -874,6 +874,12 @@ annotate_figure(ggpubr::ggarrange(egg::ggarrange(p1.bin,t1.bin, nrow = 2),
                                   egg::ggarrange(f1.bin,d1.bin, nrow = 2), nrow = 1, ncol = 3),
                 bottom = text_grob("binned recombination rate (cM/Mb)", size = 10))
 
+# library(extrafont)
+# 
+# loadfonts(device = "all")
+
+
+dev.print(pdf,"~/sciebo/My_PhD/Cobs3.1/linkageMap/manuscript/revisions/MainMaterial/binnedRR.Pi.TajD.Fst.Dxy.Pisyn.Pinonsyn.fig2_v6.pdf",width=8,height=6)
 
 ```
 # Figure 3:
