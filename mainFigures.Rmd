@@ -890,7 +890,7 @@ annotate_figure(ggpubr::ggarrange(egg::ggarrange(p1.bin,t1.bin, nrow = 2),
 # loadfonts(device = "all")
 
 
-dev.print(pdf,"~/sciebo/My_PhD/Cobs3.1/linkageMap/manuscript/GenomeResearchsubmission/Revision/MainMaterial/innedRR.Pi.TajD.Fst.Dxy.Pisyn.Pinonsyn.fig2_v.pdf",width=8,height=6)
+dev.print(pdf,"~/sciebo/My_PhD/Cobs3.1/linkageMap/manuscript/GenomeResearchsubmission/Revision/MainMaterial/Figure.2.pdf",width=8,height=6)
 
 ```
 # Figure 3:

@@ -239,7 +239,7 @@ seqtk comp Cobs3.0.tmp.fa|awk '{c=0;for(i=3;i<=6;++i){c+=$i}; gsub(">",""); if(c
 picard NormalizeFasta I=Cobs3.0.clean.fa O=Cobs3.1.clean.fa
 
 ```
-### Genome-wide recombination rates (gwRR)
+### Local recombination rates estimation
 
 Windowed recombination rates were estimated from the MSTmap output. We plotted genetic versus physical distance and visually checked correlations. Markers showing discrepencies between genetic and physical distances were removed. The final ordered markers file can be found in the datasets folder. I would like to thank Antonia Klein! Here code was a very great help here.
 
