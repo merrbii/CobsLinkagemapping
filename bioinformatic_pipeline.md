@@ -37,7 +37,7 @@ nice parallel -a rgid.txt --colsep '\t' --jobs 20 --eta java -jar /global/projec
 ls *R.bam |nice parallel --progress --eta --jobs 5 'java -jar /global/projects/programs/bin/picard.jar MarkDuplicates I="{}" O="{.}D.bam" M="{.}D.txt" MAX_FILE_HANDLES_FOR_READ_ENDS_MAP=1000 ASSUME_SORTED=true'
 
 # f- index bam file
-samtools index alignment.CSFRD.bam
+ls *D.bam |nice parallel --progress --eta --jobs 25 'samtools index {}'
 ```
 
 
