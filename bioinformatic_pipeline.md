@@ -643,10 +643,10 @@ ls *.fasta-gb|nice parallel --eta --jobs 30 'raxmlHPC -m GTRGAMMA -p 12345 -b 12
 ls *.fasta-gb|nice parallel --eta --jobs 30 'raxmlHPC -m GTRCAT -p 12345 -f b -t RAxML_bestTree.{.}.tree1 -z RAxML_bootstrap.{.}.tree2 -n {.}.tree3 -T 1'
 
 # Run aBSREL
-cat passedAlignments.txt | while read group; do hyphy absrel --alignment sequence/"$group".pal2nal.fasta --tree bestTrees/RAxML_bipartitionsBranchLabels."$group".pal2nal.tree3 --output absrel/absrel-hyphy-"$group".json >> absrel/"$group".absrel.log 2>&1;done
+cat passedAlignments.txt | while read group; do hyphy absrel --alignment sequence/"$group".pal2nal.fasta-gb --tree bestTrees/RAxML_bipartitionsBranchLabels."$group".pal2nal.tree3 --output absrel/absrel-hyphy-"$group".json >> absrel/"$group".absrel.log 2>&1;done
 
 # Run the FITMG94 model:
-cat /home/m/merrbii/data/Cobs3.1/linkageMap/dNdS/inputs/hyphy/passedAlignments.txt |while read group; do nice ./HYPHYMP hyphy-analyses/FitMG94/FitMG94.bf --alignment ~/data/Cobs3.1/linkageMap/dNdS/inputs/hyphy/sequence/"$group".pal2nal.fasta --tree ~/data/Cobs3.1/linkageMap/dNdS/inputs/hyphy/bestTrees/RAxML_bipartitionsBranchLabels."$group".pal2nal.tree3 --output ~/data/Cobs3.1/linkageMap/dNdS/inputs/hyphy/FitMG94/fitMG94-hyphy-"$group".json --type local >> ~/data/Cobs3.1/linkageMap/dNdS/inputs/hyphy/FitMG94/"$group".fitMG94.log 2>&1;done
+cat /home/m/merrbii/data/Cobs3.1/linkageMap/dNdS/inputs/hyphy/passedAlignments.txt |while read group; do nice ./HYPHYMP hyphy-analyses/FitMG94/FitMG94.bf --alignment ~/data/Cobs3.1/linkageMap/dNdS/inputs/hyphy/sequence/"$group".pal2nal.fasta-gb --tree ~/data/Cobs3.1/linkageMap/dNdS/inputs/hyphy/bestTrees/RAxML_bipartitionsBranchLabels."$group".pal2nal.tree3 --output ~/data/Cobs3.1/linkageMap/dNdS/inputs/hyphy/FitMG94/fitMG94-hyphy-"$group".json --type local >> ~/data/Cobs3.1/linkageMap/dNdS/inputs/hyphy/FitMG94/"$group".fitMG94.log 2>&1;done
 ```
 
 ### Gene expression bias analysis
